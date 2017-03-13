@@ -7,6 +7,7 @@ import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.Utils;
 import twitter4j.*;
 import twitter4j.conf.ConfigurationBuilder;
+import twitter4j.json.DataObjectFactory;
 
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -114,7 +115,7 @@ public class TweetSpout extends BaseRichSpout {
         }
         else
         {
-            collector.emit(new Values(Long.toString(ret.getId()), ret.getQuotedStatus()));
+            collector.emit(new Values(Long.toString(ret.getId()), ret.toString()));
         }
 
 
