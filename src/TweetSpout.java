@@ -2,6 +2,7 @@ import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichSpout;
+import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.Utils;
 import twitter4j.*;
@@ -11,17 +12,18 @@ import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class TweetSpout extends BaseRichSpout {
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(PrintTweetBolt.class);
 
     // Twitter API authentication credentials
-    private String custkey, custsecret;
+    private String consumerKey, consumerSecret;
     private String accesstoken, accesssecret;
 
     // To output tuples from spout to the next stage bolt
-    SpoutOutputCollector collector;
+    private SpoutOutputCollector collector;
 
     // Twitter4j - twitter stream to get tweets
-    TwitterStream twitterStream;
-    LinkedBlockingQueue<String> queue = null;
+    private TwitterStream twitterStream;
+    private LinkedBlockingQueue<Status> queue = null;
 
 
     // Class for listening on the tweet stream - for twitter4j
@@ -30,19 +32,8 @@ public class TweetSpout extends BaseRichSpout {
         // Implement the callback function when a tweet arrives
         @Override
         public void onStatus(Status status) {
-            // add the tweet into the queue buffer
-            String geoInfo = "37.7833,122.4167";
-            String urlInfo = "n/a";
-            if (status.getGeoLocation() != null) {
-                geoInfo = String.valueOf(status.getGeoLocation().getLatitude()) + "," + String.valueOf(status.getGeoLocation().getLongitude());
-                if (status.getURLEntities().length > 0) {
-                    for (URLEntity urlE : status.getURLEntities()) {
-                        urlInfo = urlE.getURL();
-                    }
-                }
-                queue.offer(status.getText() + "DELIMITER" + geoInfo + "DELIMITER" + urlInfo);
-            }
-        }
+            queue.offer(status);
+           }
 
         @Override
         public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) {}
@@ -60,17 +51,17 @@ public class TweetSpout extends BaseRichSpout {
         public void onException(Exception ex) {}
     }
 
-    public TweetSpout(String key, String secret, String token, String tokensecret) {
-        custkey = key;
-        custsecret = secret;
-        accesstoken = token;
-        accesssecret = tokensecret;
+    TweetSpout(String consumerKey, String consumerSecret, String accesstoken, String accesssecret) {
+        this.consumerKey = consumerKey;
+        this.consumerSecret = consumerSecret;
+        this.accesstoken = accesstoken;
+        this.accesssecret = accesssecret;
     }
 
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
 // create the buffer to block tweets
-        queue = new LinkedBlockingQueue<String>(1000);
+        queue = new LinkedBlockingQueue<>(1000);
 
         // save the output collector for emitting tuples
         this.collector = collector;
@@ -79,24 +70,25 @@ public class TweetSpout extends BaseRichSpout {
         // build the config with credentials for twitter 4j
         ConfigurationBuilder config =
                 new ConfigurationBuilder()
-                        .setOAuthConsumerKey(custkey)
-                        .setOAuthConsumerSecret(custsecret)
+                        .setOAuthConsumerKey(consumerKey)
+                        .setOAuthConsumerSecret(consumerSecret)
                         .setOAuthAccessToken(accesstoken)
                         .setOAuthAccessTokenSecret(accesssecret);
+
 
         // create the twitter stream factory with the config
         TwitterStreamFactory fact =
                 new TwitterStreamFactory(config.build());
 
+
         // get an instance of twitter stream
         twitterStream = fact.getInstance();
 
         FilterQuery tweetFilterQuery = new FilterQuery(); // See
-        tweetFilterQuery.locations(new double[][]{new double[]{-124.848974,24.396308},
-                new double[]{-66.885444,49.384358
-                }});
+//        tweetFilterQuery.locations(new double[][]{new double[]{-124.848974,24.396308},
+//                new double[]{-66.885444,49.384358
+//                }});
         tweetFilterQuery.language(new String[]{"en"});
-
 
 
 
@@ -112,9 +104,8 @@ public class TweetSpout extends BaseRichSpout {
     @Override
     public void nextTuple() {
         // try to pick a tweet from the buffer
-        String ret = queue.poll();
-        String geoInfo;
-        String originalTweet;
+        Status ret = queue.poll();
+
         // if no tweet is available, wait for 50 ms and return
         if (ret==null)
         {
@@ -123,17 +114,10 @@ public class TweetSpout extends BaseRichSpout {
         }
         else
         {
-            geoInfo = ret.split("DELIMITER")[1];
-            originalTweet = ret.split("DELIMITER")[0];
+            collector.emit(new Values(Long.toString(ret.getId()), ret.getQuotedStatus()));
         }
 
-//        if(geoInfo != null && !geoInfo.equals("n/a"))
-//        {
-//            System.out.print("\t DEBUG SPOUT: BEFORE SENTIMENT \n");
-////            int sentiment = SentimentAnalyzer.findSentiment(originalTweet)-2;
-//            System.out.print("\t DEBUG SPOUT: AFTER SENTIMENT (" + String.valueOf(sentiment) + ") for \t" + originalTweet + "\n");
-//            collector.emit(new Values(ret, sentiment));
-//        }
+
     }
 
     @Override
@@ -144,6 +128,6 @@ public class TweetSpout extends BaseRichSpout {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        //TODO
+        declarer.declare(new Fields("tweet_id", "tweet_body"));
     }
 }

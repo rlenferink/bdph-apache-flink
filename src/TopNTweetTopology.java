@@ -3,9 +3,13 @@ import org.apache.storm.LocalCluster;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class TopNTweetTopology
 {
+    private static final Logger LOG = LoggerFactory.getLogger(TopNTweetTopology.class);
+
     public static void main(String[] args) throws Exception
     {
         //Variable TOP_N number of words
@@ -26,13 +30,13 @@ class TopNTweetTopology
         TweetSpout tweetSpout = new TweetSpout(
                 "Vhh9wtoeqzWf08BhwmeUXOTSB",
                 "Ou1nHWLvIoxQE56mYDJl5JauwkY2N67NSfQYyO46MYjuYDnKIJ",
-                "3221388387-VwffqrtFc3P0fHVDZPL8ZxpCuaSUguw2rbGoz2",
+                "3221388387-VwffqrtFc3P0fHVDZPL8ZxpCuaSUguw2rbGoz23",
                 "7dhijHUDA4BBtnCxAdnQqlLiNPWVF2P3jRMmWTrKW2oJ4"
         );
 
         // attach the tweet spout to the topology - parallelism of 1
-//        builder.setSpout("tweet-spout", tweetSpout, 1);
-
+        builder.setSpout("tweet-spout", tweetSpout, 1);
+        builder.setBolt("print-tweet-bolt", new PrintTweetBolt(), 1).shuffleGrouping("tweet-spout");
         // attach the parse tweet bolt using shuffle grouping
 //        builder.setBolt("parse-tweet-bolt", new ParseTweetBolt(), 10).shuffleGrouping("tweet-spout");
 //        builder.setBolt("infoBolt", new InfoBolt(), 10).fieldsGrouping("parse-tweet-bolt", new Fields("county_id"));
@@ -65,7 +69,7 @@ class TopNTweetTopology
         conf.setDebug(true);
 
         if (args != null && args.length > 0) {
-
+            LOG.debug("Sending job to remote cluster");
             // run it in a live cluster
 
             // set the number of workers for running all spout and bolt tasks
@@ -75,7 +79,7 @@ class TopNTweetTopology
             StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
 
         } else {
-
+            LOG.debug("Starting local cluster");
             // run it in a simulated local cluster
 
             // set the number of threads to run - similar to setting number of workers in live cluster
