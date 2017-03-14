@@ -7,24 +7,24 @@ import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.Utils;
 import twitter4j.*;
 import twitter4j.conf.ConfigurationBuilder;
-import twitter4j.json.DataObjectFactory;
 
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class TweetSpout extends BaseRichSpout {
-    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(PrintTweetBolt.class);
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(HashTagParseBolt.class);
 
     // Twitter API authentication credentials
     private String consumerKey, consumerSecret;
-    private String accesstoken, accesssecret;
+    private String accessToken, accessSecret;
+    private String[] topics;
 
     // To output tuples from spout to the next stage bolt
     private SpoutOutputCollector collector;
 
     // Twitter4j - twitter stream to get tweets
     private TwitterStream twitterStream;
-    private LinkedBlockingQueue<Status> queue = null;
+    private LinkedBlockingQueue<String> queue = null;
 
 
     // Class for listening on the tweet stream - for twitter4j
@@ -33,8 +33,8 @@ public class TweetSpout extends BaseRichSpout {
         // Implement the callback function when a tweet arrives
         @Override
         public void onStatus(Status status) {
-            queue.offer(status);
-           }
+            queue.offer(status.getText());
+       }
 
         @Override
         public void onDeletionNotice(StatusDeletionNotice statusDeletionNotice) {}
@@ -49,14 +49,17 @@ public class TweetSpout extends BaseRichSpout {
         public void onStallWarning(StallWarning warning) {}
 
         @Override
-        public void onException(Exception ex) {}
+        public void onException(Exception ex) {
+            System.err.println(ex.getMessage());
+        }
     }
 
-    TweetSpout(String consumerKey, String consumerSecret, String accesstoken, String accesssecret) {
+    TweetSpout(String consumerKey, String consumerSecret, String accessToken, String accessSecret, String... topics) {
         this.consumerKey = consumerKey;
         this.consumerSecret = consumerSecret;
-        this.accesstoken = accesstoken;
-        this.accesssecret = accesssecret;
+        this.accessToken = accessToken;
+        this.accessSecret = accessSecret;
+        this.topics = topics;
     }
 
     @Override
@@ -73,8 +76,8 @@ public class TweetSpout extends BaseRichSpout {
                 new ConfigurationBuilder()
                         .setOAuthConsumerKey(consumerKey)
                         .setOAuthConsumerSecret(consumerSecret)
-                        .setOAuthAccessToken(accesstoken)
-                        .setOAuthAccessTokenSecret(accesssecret);
+                        .setOAuthAccessToken(accessToken)
+                        .setOAuthAccessTokenSecret(accessSecret);
 
 
         // create the twitter stream factory with the config
@@ -85,50 +88,36 @@ public class TweetSpout extends BaseRichSpout {
         // get an instance of twitter stream
         twitterStream = fact.getInstance();
 
-        FilterQuery tweetFilterQuery = new FilterQuery(); // See
-//        tweetFilterQuery.locations(new double[][]{new double[]{-124.848974,24.396308},
-//                new double[]{-66.885444,49.384358
-//                }});
-        tweetFilterQuery.language(new String[]{"en"});
-
-
+        FilterQuery tweetFilterQuery = new FilterQuery();
+        tweetFilterQuery.language("nl");
+        tweetFilterQuery.track(topics);
 
         // provide the handler for twitter stream
         twitterStream.addListener(new TweetListener());
 
         twitterStream.filter(tweetFilterQuery);
 
-        // start the sampling of tweets
-        twitterStream.sample();
     }
 
     @Override
     public void nextTuple() {
-        // try to pick a tweet from the buffer
-        Status ret = queue.poll();
+        String rawTweet = queue.poll();
 
-        // if no tweet is available, wait for 50 ms and return
-        if (ret==null)
-        {
+        if (rawTweet==null) {
             Utils.sleep(50);
-            return;
         }
-        else
-        {
-            collector.emit(new Values(Long.toString(ret.getId()), ret.toString()));
+        else {
+            collector.emit(new Values(rawTweet));
         }
-
-
     }
 
     @Override
     public void close() {
-        // shutdown the stream - when we are going to exit
         twitterStream.shutdown();
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields("tweet_id", "tweet_body"));
+        declarer.declare(new Fields("tweet_text"));
     }
 }
