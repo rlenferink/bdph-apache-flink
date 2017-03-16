@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>nl.saxion.bdph</groupId>
-    <artifactId>flink-twitter</artifactId>
+    <artifactId>storm-twitter</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
 
@@ -20,19 +20,26 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- see comment below... This fixes an annoyance with intellij -->
         <provided.scope>provided</provided.scope>
+
         <maven-surefire.version>2.18.1</maven-surefire.version>
+
+        <main-class>TopNTweetTopology</main-class>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>redis.clients</groupId>
-            <artifactId>jedis</artifactId>
-            <version>2.9.0</version>
-            <type>jar</type>
-            <scope>compile</scope>
+            <groupId>org.apache.storm</groupId>
+            <artifactId>storm-core</artifactId>
+            <version>1.0.3</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
+
         <!--<dependency>-->
             <!--<groupId>org.apache.flink</groupId>-->
             <!--<artifactId>flink-core</artifactId>-->
@@ -43,34 +50,43 @@
             <!--<artifactId>flink-java</artifactId>-->
             <!--<version>1.2.0</version>-->
         <!--</dependency>-->
+
         <dependency>
             <groupId>org.twitter4j</groupId>
             <artifactId>twitter4j-core</artifactId>
             <version>4.0.6</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.twitter4j</groupId>
             <artifactId>twitter4j-stream</artifactId>
             <version>4.0.6</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.5</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.storm</groupId>
-            <artifactId>storm-core</artifactId>
-            <version>1.0.3</version>
-            <scope>${provided.scope}</scope>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.5</version>
+            <scope>test</scope>
         </dependency>
-        <!--<dependency>-->
-            <!--<groupId>org.slf4j</groupId>-->
-            <!--<artifactId>slf4j-api</artifactId>-->
-            <!--<version>1.7.5</version>-->
-        <!--</dependency>-->
-        <!--<dependency>-->
-            <!--<groupId>org.slf4j</groupId>-->
-            <!--<artifactId>slf4j-simple</artifactId>-->
-            <!--<version>1.7.5</version>-->
-            <!--<scope>test</scope>-->
-        <!--</dependency>-->
     </dependencies>
+
     <build>
         <sourceDirectory>src</sourceDirectory>
         <pluginManagement>
@@ -191,7 +207,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <finalName>${artifactId}-shaded-${version}</finalName>
+                    <finalName>${project.artifactId}-shaded-${project.version}</finalName>
                 </configuration>
             </plugin>
             <plugin>
@@ -202,7 +218,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                           <mainClass>PingProducer</mainClass>
+                           <mainClass>${main-class}</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

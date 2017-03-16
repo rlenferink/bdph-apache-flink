@@ -13,10 +13,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class HashTagParseBolt extends BaseRichBolt{
+
     private static final Logger LOG = LoggerFactory.getLogger(HashTagParseBolt.class);
 
     private OutputCollector collector;
-
 
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
@@ -39,4 +39,5 @@ public class HashTagParseBolt extends BaseRichBolt{
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("hashtag"));
     }
+
 }

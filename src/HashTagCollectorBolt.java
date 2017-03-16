@@ -11,8 +11,8 @@ import org.slf4j.LoggerFactory;
 import java.util.*;
 
 public class HashTagCollectorBolt extends BaseRichBolt{
-    private static final Logger LOG = LoggerFactory.getLogger(HashTagCollectorBolt.class);
 
+    private static final Logger LOG = LoggerFactory.getLogger(HashTagCollectorBolt.class);
 
     private final long sendInterval;
     private OutputCollector collector;
@@ -72,4 +72,5 @@ public class HashTagCollectorBolt extends BaseRichBolt{
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("hashtag_json"));
     }
+
 }

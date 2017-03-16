@@ -5,6 +5,8 @@ import org.apache.storm.topology.base.BaseRichSpout;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
 import org.apache.storm.utils.Utils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import twitter4j.*;
 import twitter4j.conf.ConfigurationBuilder;
 
@@ -12,7 +14,8 @@ import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class TweetSpout extends BaseRichSpout {
-    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(HashTagParseBolt.class);
+
+    private static final Logger LOG = LoggerFactory.getLogger(HashTagParseBolt.class);
 
     // Twitter API authentication credentials
     private String consumerKey, consumerSecret;
@@ -64,7 +67,7 @@ public class TweetSpout extends BaseRichSpout {
 
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-// create the buffer to block tweets
+        // create the buffer to block tweets
         queue = new LinkedBlockingQueue<>(1000);
 
         // save the output collector for emitting tuples
@@ -81,9 +84,7 @@ public class TweetSpout extends BaseRichSpout {
 
 
         // create the twitter stream factory with the config
-        TwitterStreamFactory fact =
-                new TwitterStreamFactory(config.build());
-
+        TwitterStreamFactory fact = new TwitterStreamFactory(config.build());
 
         // get an instance of twitter stream
         twitterStream = fact.getInstance();

@@ -10,6 +10,7 @@ import twitter4j.JSONObject;
 import java.util.Map;
 
 public class HashTagTopNBolt extends BaseRichBolt{
+
     private final long interval;
     private OutputCollector collector;
 
@@ -40,4 +41,5 @@ public class HashTagTopNBolt extends BaseRichBolt{
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields());
     }
+
 }
